@@ -18,8 +18,44 @@ export default class Topbar extends React.Component {
       swaggerClient: null,
       clients: [],
       servers: [],
-      definitionVersion: "Unknown"
+      definitionVersion: "Unknown",
+      files: [],
+      fileName: "",
     }
+  }
+
+  refreshFiles = () => fetch(`${window.location.origin}/specs`)
+      .then(res => res.json())
+      .then((data) => {
+        this.setState({ files: data })
+      })
+
+  createNewFile = () => {
+    if (this.state.fileName) {
+      fetch(`${window.location.origin}/specs/`, {
+        method: "POST",
+        body: `${this.state.fileName}.yaml`
+      })
+      .then(res => {
+        this.refreshFiles()
+        window.location.replace(`${window.location.origin}/?url=/specs/${this.state.fileName}.yaml`)
+        this.setState({ fileName: "" })
+      })
+    }
+  }
+
+  deleteAFile = (fileName) => {
+    fetch(`${window.location.origin}/specs/${fileName}`, {
+      method: "DELETE",
+    })
+    .then(res =>{
+      this.refreshFiles()
+      window.location.replace(window.location.origin)
+    })
+  }
+
+  openFile = (fileName) => {
+    window.location.replace(`${window.location.origin}/?url=/specs/${fileName}`)
   }
 
   getGeneratorUrl = () => {
@@ -67,7 +103,7 @@ export default class Topbar extends React.Component {
       .then(res => {
         this.setState({ clients: res.body || [] })
       })
-      
+
       serverGetter({}, {
         // contextUrl is needed because swagger-client is curently
         // not building relative server URLs correctly
@@ -291,6 +327,7 @@ export default class Topbar extends React.Component {
   ///// Lifecycle
 
   componentDidMount() {
+    this.refreshFiles()
     this.instantiateGeneratorClient()
   }
 
@@ -352,6 +389,10 @@ export default class Topbar extends React.Component {
             <Link href="#">
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
+            <DropdownMenu {...makeMenuOptions("Files")}>
+              { this.state.files
+                  .map((f, i) => <li key={i}><button type="button" onClick={this.openFile.bind(null, f)}>Open {f}</button></li>) }
+            </DropdownMenu>
             <DropdownMenu {...makeMenuOptions("File")}>
               <li><button type="button" onClick={this.importFromURL}>Import URL</button></li>
               <ImportFileMenuItem onDocumentLoad={content => this.props.specActions.updateSpec(content)} />
@@ -362,7 +403,7 @@ export default class Topbar extends React.Component {
             </DropdownMenu>
             <DropdownMenu {...makeMenuOptions("Edit")}>
               <li><button type="button" onClick={this.convertToYaml}>Convert to YAML</button></li>
-              <ConvertDefinitionMenuItem 
+              <ConvertDefinitionMenuItem
                 isSwagger2={specSelectors.isSwagger2()}
                 onClick={() => topbarActions.showModal("convert")}
                 />
@@ -376,6 +417,11 @@ export default class Topbar extends React.Component {
               { this.state.clients
                   .map((cli, i) => <li key={i}><button type="button" onClick={this.downloadGeneratedFile.bind(null, "client", cli)}>{cli}</button></li>) }
             </DropdownMenu> : null }
+            <DropdownMenu {...makeMenuOptions("Delete files")}>
+              { this.state.files
+                  .map((f, i) => <li key={i}><button type="button" onClick={this.deleteAFile.bind(null, f)}>Delete {f}</button></li>) }
+            </DropdownMenu>
+            <input style={{ background: "black" }} type="text" value={this.state.fileName} onChange={e => this.setState({ fileName: e.target.value})} ></input><button style={{ background: "black" }} onClick={this.createNewFile}>Create new file</button>
           </div>
         </div>
       </div>

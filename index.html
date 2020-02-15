@@ -48,6 +48,38 @@
   <script src="./dist/swagger-editor-bundle.js"> </script>
   <script src="./dist/swagger-editor-standalone-preset.js"> </script>
   <script>
+    function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+  const SpecUpdateListenerPlugin = function() {
+    return {
+      statePlugins: {
+        spec: {
+          wrapActions: {
+            updateSpec: function(oriAction) {
+              return function(spec) {
+                var url = getParameterByName('url');
+                var xhr = new XMLHttpRequest();
+                xhr.open('PUT', url, true);
+                xhr.send(spec);
+
+                if (xhr.status != 200) {
+                  console.log( xhr.status + ': ' + xhr.statusText );
+                }
+                return oriAction(spec);
+              };
+            }
+          }
+        }
+      }
+    }
+  }
   window.onload = function() {
     // Build a system
     const editor = SwaggerEditorBundle({
@@ -55,6 +87,9 @@
       layout: 'StandaloneLayout',
       presets: [
         SwaggerEditorStandalonePreset
+      ],
+      plugins: [
+        SpecUpdateListenerPlugin
       ]
     })
 

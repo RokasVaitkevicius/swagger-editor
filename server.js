@@ -1,19 +1,22 @@
 require("dotenv").config()
-var session = require("express-session")
+const session = require("express-session")
 const express = require("express")
 const app = express()
-var passport = require("passport")
-var Auth0Strategy = require("passport-auth0")
+const passport = require("passport")
+const Auth0Strategy = require("passport-auth0")
+const bodyParser = require("body-parser")
+const fs = require("fs")
+const petstore = require("./petstore")
 const PORT = process.env.PORT || 3000
 
-var sess = {
+const sess = {
   secret: "RANDOM SECRETE",
   cookie: { secure: false },
   resave: false,
   saveUninitialized: false,
 }
 
-var strategy = new Auth0Strategy(
+const strategy = new Auth0Strategy(
   {
     domain: process.env.AUTH0_DOMAIN,
     clientID: process.env.AUTH0_CLIENT_ID,
@@ -21,12 +24,17 @@ var strategy = new Auth0Strategy(
     callbackURL:
       process.env.AUTH0_CALLBACK_URL || "http://localhost:3000/callback"
   },
-  function (accessToken, refreshToken, extraParams, profile, done) {
-    return done(null, profile)
-  }
+  (accessToken, refreshToken, extraParams, profile, done) => done(null, profile)
 )
 
+const secured = () => (req, res, next) => {
+  if (req.user) { return next() }
+  req.session.returnTo = req.originalUrl
+  res.redirect("/login")
+}
+
 app.use(session(sess))
+app.use(bodyParser.text({ type: "text/plain" }))
 
 passport.use(strategy)
 
@@ -37,9 +45,7 @@ passport.serializeUser((user, done) => {
   done(null, user)
 })
 
-passport.deserializeUser((user, done) => {
-  done(null, user)
-})
+passport.deserializeUser((user, done) => done(null, user))
 
 app.get("/callback", (req, res, next) => {
   passport.authenticate("auth0", (err, user, info) => {
@@ -56,20 +62,42 @@ app.get("/callback", (req, res, next) => {
 
 app.get("/login", passport.authenticate("auth0", {
   scope: "openid email profile"
-}),(req, res) => {
-  res.redirect("/swagger")
-})
+}),(req, res) => res.redirect("/swagger"))
 
-app.get("/", (req, res, next)=> {
-  if (req.user) { return next() }
-  req.session.returnTo = req.originalUrl
-  res.redirect("/login")
-}, (req, res) => {
+app.get("/", secured(), (req, res) => {
   res.sendFile(__dirname + "/index.html")
 })
 
-app.get("/test", (req, res) => {
-  res.send("Server is running")
+app.get("/test", (req, res) => res.send("Server is running"))
+
+app.post("/specs", secured(), (req, res) => {
+  fs.writeFileSync(`${__dirname}/specs/${req.body}`, petstore)
+  res.send("All good")
+})
+
+app.get("/specs", secured(), (req, res) => {
+  res.send(fs.readdirSync(`${__dirname}/specs`))
+})
+
+app.get("/specs/:file", (req, res) => {
+  try {
+    if (fs.existsSync(`${__dirname}/specs/${req.params.file}`)) {
+      res.send(fs.readFileSync(`${__dirname}/specs/${req.params.file}`))
+    }
+  } catch(err) {
+    fs.writeFileSync(`${__dirname}/specs/${req.params.file}`, petstore)
+  }
+})
+
+app.put("/specs/:file", secured(), (req, res) => {
+  fs.writeFileSync(`${__dirname}/specs/${req.params.file}`, req.body)
+  res.send("All good")
+})
+
+
+app.delete("/specs/:file", secured(), (req, res) => {
+  fs.unlinkSync(`${__dirname}/specs/${req.params.file}`)
+  res.send("All good")
 })
 
 app.use(express.static(__dirname + "/."))

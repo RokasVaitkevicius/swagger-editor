@@ -38,7 +38,7 @@ export default class Topbar extends React.Component {
       })
       .then(res => {
         this.refreshFiles()
-        window.location.replace(`${window.location.origin}/?url=/specs/${this.state.fileName}.yaml`)
+        this.openFile(`${this.state.fileName}.yaml`)
         this.setState({ fileName: "" })
       })
     }
@@ -50,12 +50,24 @@ export default class Topbar extends React.Component {
     })
     .then(res =>{
       this.refreshFiles()
-      window.location.replace(window.location.origin)
+      this.props.specActions.updateSpec(
+        YAML.safeDump(YAML.safeLoad(""), {
+          lineWidth: -1
+        })
+      )
     })
   }
 
   openFile = (fileName) => {
-    window.location.replace(`${window.location.origin}/?url=/specs/${fileName}`)
+    fetch(`${window.location.origin}/specs/${fileName}`)
+      .then(res => res.text())
+      .then((data) => {
+        this.props.specActions.updateSpec(
+          YAML.safeDump(YAML.safeLoad(data), {
+            lineWidth: -1
+          })
+        )
+      })
   }
 
   getGeneratorUrl = () => {

@@ -6,8 +6,14 @@ const passport = require("passport")
 const Auth0Strategy = require("passport-auth0")
 const bodyParser = require("body-parser")
 const fs = require("fs")
+const AWS = require("aws-sdk")
 const petstore = require("./petstore")
 const PORT = process.env.PORT || 3000
+
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ID,
+  secretAccessKey: process.env.AWS_SECRET
+})
 
 const sess = {
   secret: "RANDOM SECRETE",
@@ -75,11 +81,14 @@ app.post("/specs", secured(), (req, res) => {
   res.send("All good")
 })
 
-app.get("/specs", secured(), (req, res) => {
+app.get("/specs", secured(), async (req, res) => {
+  // const s3Files = await s3.listObjectsV2({Bucket: process.env.S3_BUCKET_NAME}).promise()
+  // res.send(s3Files.Contents.map(f => f.Key))
   res.send(fs.readdirSync(`${__dirname}/specs`))
 })
 
 app.get("/specs/:file", (req, res) => {
+  console.log(`${__dirname}/specs/${req.params.file}`)
   try {
     if (fs.existsSync(`${__dirname}/specs/${req.params.file}`)) {
       res.send(fs.readFileSync(`${__dirname}/specs/${req.params.file}`))
@@ -91,6 +100,9 @@ app.get("/specs/:file", (req, res) => {
 
 app.put("/specs/:file", secured(), (req, res) => {
   fs.writeFileSync(`${__dirname}/specs/${req.params.file}`, req.body)
+
+  console.log('PUT')
+
   res.send("All good")
 })
 

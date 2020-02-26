@@ -424,7 +424,7 @@ export default class Topbar extends React.Component {
             {this.state.activeFileName && <button type="button" onClick={this.saveFile} style={{ background: "green" }}>Save changes</button> }
             <DropdownMenu {...makeMenuOptions("Files")}>
               { this.state.files
-                  .map((f, i) => <li key={i}><button type="button" onClick={this.openFile.bind(null, f)}>Open {f}</button></li>) }
+                  .map((f, i) => <li key={i}><button type="button" onClick={this.openFile.bind(null, f)}>Open: "{f}"</button></li>) }
             </DropdownMenu>
             <DropdownMenu {...makeMenuOptions("File")}>
               <li><button type="button" onClick={this.importFromURL}>Import URL</button></li>
@@ -452,7 +452,7 @@ export default class Topbar extends React.Component {
             </DropdownMenu> : null }
             <DropdownMenu {...makeMenuOptions("Delete files")}>
               { this.state.files
-                  .map((f, i) => <li key={i}><button type="button" onClick={this.deleteAFile.bind(null, f)}>Delete {f}</button></li>) }
+                  .map((f, i) => <li key={i}><button type="button" onClick={this.deleteAFile.bind(null, f)}>Delete: "{f}"</button></li>) }
             </DropdownMenu>
             <input style={{ background: "white", color: "black" }} type="text" value={this.state.fileName} onChange={e => this.setState({ fileName: e.target.value})} ></input><button style={{ background: "blue" }} onClick={this.createNewFile}>Create new file</button>
           </div>

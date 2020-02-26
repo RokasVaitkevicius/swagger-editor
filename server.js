@@ -5,7 +5,6 @@ const app = express()
 const passport = require("passport")
 const Auth0Strategy = require("passport-auth0")
 const bodyParser = require("body-parser")
-const fs = require("fs")
 const AWS = require("aws-sdk")
 const petstore = require("./petstore")
 const PORT = process.env.PORT || 3000
@@ -16,11 +15,13 @@ const s3 = new AWS.S3({
 })
 
 const sess = {
-  secret: "RANDOM SECRETE",
+  secret: "shhhhh secret",
   cookie: { secure: false },
   resave: false,
   saveUninitialized: false,
 }
+
+const Bucket = process.env.S3_BUCKET_NAME
 
 const strategy = new Auth0Strategy(
   {
@@ -76,39 +77,29 @@ app.get("/", secured(), (req, res) => {
 
 app.get("/test", (req, res) => res.send("Server is running"))
 
-app.post("/specs", secured(), (req, res) => {
-  fs.writeFileSync(`${__dirname}/specs/${req.body}`, petstore)
+app.post("/specs", secured(), async (req, res) => {
+  await s3.putObject({ Bucket, Key : req.body, Body : petstore}).promise()
   res.send("All good")
 })
 
 app.get("/specs", secured(), async (req, res) => {
-  // const s3Files = await s3.listObjectsV2({Bucket: process.env.S3_BUCKET_NAME}).promise()
-  // res.send(s3Files.Contents.map(f => f.Key))
-  res.send(fs.readdirSync(`${__dirname}/specs`))
+  const s3Files = await s3.listObjectsV2({ Bucket }).promise()
+  res.send(s3Files.Contents.map(f => f.Key))
 })
 
-app.get("/specs/:file", (req, res) => {
-  console.log(`${__dirname}/specs/${req.params.file}`)
-  try {
-    if (fs.existsSync(`${__dirname}/specs/${req.params.file}`)) {
-      res.send(fs.readFileSync(`${__dirname}/specs/${req.params.file}`))
-    }
-  } catch(err) {
-    fs.writeFileSync(`${__dirname}/specs/${req.params.file}`, petstore)
-  }
+app.get("/specs/:file", secured(), async (req, res) => {
+  const file = await s3.getObject({ Bucket, Key: req.params.file }).promise()
+  res.send(file.Body)
 })
 
-app.put("/specs/:file", secured(), (req, res) => {
-  fs.writeFileSync(`${__dirname}/specs/${req.params.file}`, req.body)
-
-  console.log('PUT')
-
+app.put("/specs/:file", secured(), async (req, res) => {
+  await s3.putObject({ Bucket, Key : req.params.file, Body : req.body}).promise()
   res.send("All good")
 })
 
 
-app.delete("/specs/:file", secured(), (req, res) => {
-  fs.unlinkSync(`${__dirname}/specs/${req.params.file}`)
+app.delete("/specs/:file", secured(), async (req, res) => {
+  await s3.deleteObject({ Bucket, Key: req.params.file,}).promise()
   res.send("All good")
 })
 

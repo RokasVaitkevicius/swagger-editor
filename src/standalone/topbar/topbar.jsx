@@ -21,14 +21,24 @@ export default class Topbar extends React.Component {
       definitionVersion: "Unknown",
       files: [],
       fileName: "",
+      activeFileName: "",
     }
   }
 
   refreshFiles = () => fetch(`${window.location.origin}/specs`)
-      .then(res => res.json())
-      .then((data) => {
-        this.setState({ files: data })
-      })
+    .then(res => res.json())
+    .then((data) => {
+      if (data && data.length === 0) {
+        this.props.specActions.updateSpec(
+          YAML.safeDump(YAML.safeLoad("NO FILES FOUND. CREATE A FILE"), {
+            lineWidth: -1
+          })
+        )
+      } else {
+        this.openFile(data[0])
+        this.setState({ files: data, activeFileName: data[0] })
+      }
+    })
 
   createNewFile = () => {
     if (this.state.fileName) {
@@ -39,7 +49,7 @@ export default class Topbar extends React.Component {
       .then(res => {
         this.refreshFiles()
         this.openFile(`${this.state.fileName}.yaml`)
-        this.setState({ fileName: "" })
+        this.setState({ fileName: "", activeFileName: `${this.state.fileName}.yaml` })
       })
     }
   }
@@ -48,7 +58,7 @@ export default class Topbar extends React.Component {
     fetch(`${window.location.origin}/specs/${fileName}`, {
       method: "DELETE",
     })
-    .then(res =>{
+    .then(res => {
       this.refreshFiles()
       this.props.specActions.updateSpec(
         YAML.safeDump(YAML.safeLoad(""), {
@@ -68,6 +78,16 @@ export default class Topbar extends React.Component {
           })
         )
       })
+  }
+
+  saveFile = () => {
+    fetch(`${window.location.origin}/specs/${this.state.activeFileName}`, {
+      method: "PUT",
+      body: this.props.specSelectors.specStr()
+    })
+    .then(res => {
+      alert("File saved")
+    })
   }
 
   getGeneratorUrl = () => {
@@ -401,6 +421,7 @@ export default class Topbar extends React.Component {
             <Link href="#">
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
+            {this.state.activeFileName && <button type="button" onClick={this.saveFile} style={{ background: "green" }}>Save changes</button> }
             <DropdownMenu {...makeMenuOptions("Files")}>
               { this.state.files
                   .map((f, i) => <li key={i}><button type="button" onClick={this.openFile.bind(null, f)}>Open {f}</button></li>) }
@@ -433,7 +454,7 @@ export default class Topbar extends React.Component {
               { this.state.files
                   .map((f, i) => <li key={i}><button type="button" onClick={this.deleteAFile.bind(null, f)}>Delete {f}</button></li>) }
             </DropdownMenu>
-            <input style={{ background: "black" }} type="text" value={this.state.fileName} onChange={e => this.setState({ fileName: e.target.value})} ></input><button style={{ background: "black" }} onClick={this.createNewFile}>Create new file</button>
+            <input style={{ background: "white", color: "black" }} type="text" value={this.state.fileName} onChange={e => this.setState({ fileName: e.target.value})} ></input><button style={{ background: "blue" }} onClick={this.createNewFile}>Create new file</button>
           </div>
         </div>
       </div>

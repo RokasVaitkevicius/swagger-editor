@@ -423,11 +423,8 @@ export default class Topbar extends React.Component {
       <div className="swagger-editor-standalone">
         <div className="topbar">
           <div className="topbar-wrapper">
-            <Link href="#">
-              <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
-            </Link>
-            {this.state.activeFileName && <button type="button" onClick={this.saveFile} style={{ background: "green" }}>Save changes</button> }
             {this.state.activeFileName && <div>Active file: {this.state.activeFileName}</div> }
+            {this.state.activeFileName && <button type="button" onClick={this.saveFile} style={{ background: "green" }}>Save changes</button> }
             <DropdownMenu {...makeMenuOptions("Files")}>
               { this.state.files
                   .map((f, i) => <li key={i}><button type="button" onClick={this.openFile.bind(null, f)}>Open: "{f}"</button></li>) }

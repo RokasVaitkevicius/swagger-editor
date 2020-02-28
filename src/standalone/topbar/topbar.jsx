@@ -42,15 +42,19 @@ export default class Topbar extends React.Component {
 
   createNewFile = () => {
     if (this.state.fileName) {
-      fetch(`${window.location.origin}/specs/`, {
-        method: "POST",
-        body: `${this.state.fileName}.yaml`
-      })
-      .then(res => {
-        this.refreshFiles()
-        this.openFile(`${this.state.fileName}.yaml`)
-        this.setState({ fileName: "", activeFileName: `${this.state.fileName}.yaml` })
-      })
+      if (this.state.files.includes(`${this.state.fileName}.yaml`)) {
+        alert(`File with filename "${this.state.fileName} exists"`)
+      } else {
+        fetch(`${window.location.origin}/specs/`, {
+          method: "POST",
+          body: `${this.state.fileName}.yaml`
+        })
+          .then(res => {
+            this.refreshFiles()
+            this.openFile(`${this.state.fileName}.yaml`)
+            this.setState({ fileName: "", activeFileName: `${this.state.fileName}.yaml` })
+          })
+      }
     }
   }
 
@@ -77,6 +81,7 @@ export default class Topbar extends React.Component {
             lineWidth: -1
           })
         )
+        this.setState({ activeFileName: fileName })
       })
   }
 
@@ -86,7 +91,7 @@ export default class Topbar extends React.Component {
       body: this.props.specSelectors.specStr()
     })
     .then(res => {
-      alert("File saved")
+      alert(`File ${this.state.activeFileName} saved`)
     })
   }
 
@@ -422,6 +427,7 @@ export default class Topbar extends React.Component {
               <img height="35" className="topbar-logo__img" src={ Logo } alt=""/>
             </Link>
             {this.state.activeFileName && <button type="button" onClick={this.saveFile} style={{ background: "green" }}>Save changes</button> }
+            {this.state.activeFileName && <div>Active file: {this.state.activeFileName}</div> }
             <DropdownMenu {...makeMenuOptions("Files")}>
               { this.state.files
                   .map((f, i) => <li key={i}><button type="button" onClick={this.openFile.bind(null, f)}>Open: "{f}"</button></li>) }

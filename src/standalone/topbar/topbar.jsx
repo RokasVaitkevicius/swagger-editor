@@ -76,11 +76,7 @@ export default class Topbar extends React.Component {
     fetch(`${window.location.origin}/specs/${fileName}`)
       .then(res => res.text())
       .then((data) => {
-        this.props.specActions.updateSpec(
-          YAML.safeDump(YAML.safeLoad(data), {
-            lineWidth: -1
-          })
-        )
+        this.props.specActions.updateSpec(data)
         this.setState({ activeFileName: fileName })
       })
   }
